@@ -1,0 +1,299 @@
+{
+  "timezone": "America/Argentina/Buenos_Aires",
+  "slots": [
+    {
+      "id": "2026-08-16T11:00",
+      "fecha": "2026-08-16",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-16T19:30",
+      "fecha": "2026-08-16",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-17T11:00",
+      "fecha": "2026-08-17",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-17T19:30",
+      "fecha": "2026-08-17",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-18T11:00",
+      "fecha": "2026-08-18",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-18T19:30",
+      "fecha": "2026-08-18",
+      "hora": "19:30",
+      "placa": "souffle.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-19T11:00",
+      "fecha": "2026-08-19",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-19T19:30",
+      "fecha": "2026-08-19",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-20T11:00",
+      "fecha": "2026-08-20",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-20T19:30",
+      "fecha": "2026-08-20",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-21T11:00",
+      "fecha": "2026-08-21",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-21T19:30",
+      "fecha": "2026-08-21",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-22T11:00",
+      "fecha": "2026-08-22",
+      "hora": "11:00",
+      "placa": "estas_para.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-22T19:30",
+      "fecha": "2026-08-22",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 1
+    },
+    {
+      "id": "2026-08-23T11:00",
+      "fecha": "2026-08-23",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-23T19:30",
+      "fecha": "2026-08-23",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-24T11:00",
+      "fecha": "2026-08-24",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-24T19:30",
+      "fecha": "2026-08-24",
+      "hora": "19:30",
+      "placa": "souffle.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-25T11:00",
+      "fecha": "2026-08-25",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-25T19:30",
+      "fecha": "2026-08-25",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-26T11:00",
+      "fecha": "2026-08-26",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-26T19:30",
+      "fecha": "2026-08-26",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-27T11:00",
+      "fecha": "2026-08-27",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-27T19:30",
+      "fecha": "2026-08-27",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-28T11:00",
+      "fecha": "2026-08-28",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-28T19:30",
+      "fecha": "2026-08-28",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-29T11:00",
+      "fecha": "2026-08-29",
+      "hora": "11:00",
+      "placa": "estas_para.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-29T19:30",
+      "fecha": "2026-08-29",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 2
+    },
+    {
+      "id": "2026-08-30T11:00",
+      "fecha": "2026-08-30",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-08-30T19:30",
+      "fecha": "2026-08-30",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-08-31T11:00",
+      "fecha": "2026-08-31",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-08-31T19:30",
+      "fecha": "2026-08-31",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-01T11:00",
+      "fecha": "2026-09-01",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-01T19:30",
+      "fecha": "2026-09-01",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-02T11:00",
+      "fecha": "2026-09-02",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-02T19:30",
+      "fecha": "2026-09-02",
+      "hora": "19:30",
+      "placa": "souffle.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-03T11:00",
+      "fecha": "2026-09-03",
+      "hora": "11:00",
+      "placa": "docena.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-03T19:30",
+      "fecha": "2026-09-03",
+      "hora": "19:30",
+      "placa": "carta_emp.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-04T11:00",
+      "fecha": "2026-09-04",
+      "hora": "11:00",
+      "placa": "almuerzo.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-04T19:30",
+      "fecha": "2026-09-04",
+      "hora": "19:30",
+      "placa": "carta_pizza.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-05T11:00",
+      "fecha": "2026-09-05",
+      "hora": "11:00",
+      "placa": "estas_para.jpg",
+      "semana": 3
+    },
+    {
+      "id": "2026-09-05T19:30",
+      "fecha": "2026-09-05",
+      "hora": "19:30",
+      "placa": "grilla.jpg",
+      "semana": 3
+    }
+  ]
+}

@@ -50,7 +50,7 @@ def guardar_estado(estado):
         json.dump(estado, fh, indent=2, ensure_ascii=False)
 
 
-# --- Selección del slot ---------------------------------------------------
+# --- Seleccion del slot ---------------------------------------------------
 
 def parsear(slot):
     return datetime.strptime(slot["id"], "%Y-%m-%dT%H:%M").replace(tzinfo=ART)
@@ -68,13 +68,39 @@ def slot_de_ahora(slots, ahora):
     return min(candidatos, key=lambda par: par[0])[1]
 
 
-# --- Publicación ----------------------------------------------------------
+# --- Publicacion ----------------------------------------------------------
+
+def token_de_pagina():
+    """
+    Para publicar COMO la pagina hace falta un token de pagina, no el del usuario
+    del sistema. Instagram acepta el token del usuario directo, Facebook no: devuelve
+    403 Forbidden. Lo pedimos al arrancar y lo cacheamos.
+    """
+    if not hasattr(token_de_pagina, "_cache"):
+        r = requests.get(
+            f"{GRAPH}/{PAGE_ID}",
+            params={"fields": "access_token", "access_token": TOKEN},
+            timeout=30,
+        )
+        r.raise_for_status()
+        pt = r.json().get("access_token")
+        if not pt:
+            raise RuntimeError(
+                "No se pudo obtener el token de pagina. Revisa que el usuario del "
+                "sistema tenga la pagina asignada con la tarea 'Content'."
+            )
+        token_de_pagina._cache = pt
+        print("Token de pagina obtenido.")
+    return token_de_pagina._cache
+
 
 def publicar_facebook(url_imagen):
-    """Sube la foto sin publicar, después la manda a historias."""
+    """Sube la foto sin publicar, despues la manda a historias."""
+    pt = token_de_pagina()
+
     r = requests.post(
         f"{GRAPH}/{PAGE_ID}/photos",
-        data={"url": url_imagen, "published": "false", "access_token": TOKEN},
+        data={"url": url_imagen, "published": "false", "access_token": pt},
         timeout=60,
     )
     r.raise_for_status()
@@ -82,7 +108,7 @@ def publicar_facebook(url_imagen):
 
     r = requests.post(
         f"{GRAPH}/{PAGE_ID}/photo_stories",
-        data={"photo_id": photo_id, "access_token": TOKEN},
+        data={"photo_id": photo_id, "access_token": pt},
         timeout=60,
     )
     r.raise_for_status()
@@ -91,7 +117,7 @@ def publicar_facebook(url_imagen):
 
 def descubrir_ig_user_id():
     """
-    El ID de Instagram cuelga de la página de Facebook, así que no hace falta
+    El ID de Instagram cuelga de la pagina de Facebook, asi que no hace falta
     cargarlo a mano como secret: lo pedimos al arrancar.
     """
     if IG_USER_ID:
@@ -105,7 +131,7 @@ def descubrir_ig_user_id():
     cuenta = r.json().get("instagram_business_account")
     if not cuenta:
         raise RuntimeError(
-            "La página no tiene una cuenta de Instagram profesional vinculada, "
+            "La pagina no tiene una cuenta de Instagram profesional vinculada, "
             "o el token no tiene permiso para verla."
         )
     print(f"IG user id descubierto: {cuenta['id']}")
@@ -113,7 +139,7 @@ def descubrir_ig_user_id():
 
 
 def publicar_instagram(url_imagen):
-    """Contenedor -> publish. IG exige que image_url sea accesible públicamente."""
+    """Contenedor -> publish. IG exige que image_url sea accesible publicamente."""
     ig_id = descubrir_ig_user_id()
     r = requests.post(
         f"{GRAPH}/{ig_id}/media",
@@ -159,7 +185,7 @@ def main():
 
     estado = cargar_estado()
     if slot["id"] in estado["publicados"]:
-        print(f"{slot['id']} ya se publicó antes. Salteando para no duplicar.")
+        print(f"{slot['id']} ya se publico antes. Salteando para no duplicar.")
         return
 
     url_imagen = f"{RAW_BASE}/placas/{slot['placa']}"
@@ -167,7 +193,7 @@ def main():
     print(f"URL: {url_imagen}")
 
     if args.dry_run:
-        print("[dry-run] No se llamó a la API.")
+        print("[dry-run] No se llamo a la API.")
         return
 
     faltantes = [
@@ -192,7 +218,7 @@ def main():
         errores.append(f"IG: {exc}")
         print(f"ERROR Instagram: {exc}", file=sys.stderr)
 
-    # Marcamos como publicado si al menos una red salió, para no repetir la otra
+    # Marcamos como publicado si al menos una red salio, para no repetir la otra
     # a ciegas en un re-run. Si fallaron las dos, queda pendiente y se reintenta.
     if len(errores) < 2:
         estado["publicados"].append(slot["id"])

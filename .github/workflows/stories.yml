@@ -13,6 +13,10 @@ on:
         description: "true para no llamar a la API"
         required: false
         default: "false"
+      check:
+        description: "true para solo verificar el token, sin publicar nada"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -37,11 +41,15 @@ jobs:
           RAW_BASE: ${{ vars.RAW_BASE }}
         run: |
           ARGS=""
-          if [ -n "${{ github.event.inputs.slot }}" ]; then
-            ARGS="$ARGS --slot ${{ github.event.inputs.slot }}"
-          fi
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
+          if [ "${{ github.event.inputs.check }}" = "true" ]; then
+            ARGS="--check"
+          else
+            if [ -n "${{ github.event.inputs.slot }}" ]; then
+              ARGS="$ARGS --slot ${{ github.event.inputs.slot }}"
+            fi
+            if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+              ARGS="$ARGS --dry-run"
+            fi
           fi
           python publish.py $ARGS
 

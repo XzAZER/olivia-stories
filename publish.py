@@ -3,12 +3,13 @@
 Publica las historias de Olivia en Facebook + Instagram.
 
 Ni la API de FB ni la de IG permiten programar historias: publican en el instante.
-Por eso este script no "programa" nada — lo dispara el cron de GitHub Actions en el
+Por eso este script no "programa" nada - lo dispara el cron de GitHub Actions en el
 horario correcto, y el script decide si en ESTE momento le toca publicar algo.
 
 Uso:
     python publish.py              # publica el slot que corresponde a ahora
-    python publish.py --dry-run    # muestra qué haría, no llama a la API
+    python publish.py --dry-run    # muestra que haria, no llama a la API
+    python publish.py --check      # verifica que el token funciona, no publica nada
     python publish.py --slot 2026-08-16T11:00   # fuerza un slot puntual (test)
 """
 
@@ -72,9 +73,9 @@ def slot_de_ahora(slots, ahora):
 
 def token_de_pagina():
     """
-    Para publicar COMO la pagina hace falta un token de pagina, no el del usuario
-    del sistema. Instagram acepta el token del usuario directo, Facebook no: devuelve
-    403 Forbidden. Lo pedimos al arrancar y lo cacheamos.
+    CRITICO: el token del usuario del sistema NO sirve para publicar como la pagina.
+    Facebook devuelve 403 Forbidden. Hay que canjearlo por un token de pagina.
+    Instagram si acepta el token del usuario directo.
     """
     if not hasattr(token_de_pagina, "_cache"):
         r = requests.get(
@@ -116,10 +117,7 @@ def publicar_facebook(url_imagen):
 
 
 def descubrir_ig_user_id():
-    """
-    El ID de Instagram cuelga de la pagina de Facebook, asi que no hace falta
-    cargarlo a mano como secret: lo pedimos al arrancar.
-    """
+    """El ID de IG cuelga de la pagina, no hace falta cargarlo como secret."""
     if IG_USER_ID:
         return IG_USER_ID
     r = requests.get(
@@ -139,7 +137,7 @@ def descubrir_ig_user_id():
 
 
 def publicar_instagram(url_imagen):
-    """Contenedor -> publish. IG exige que image_url sea accesible publicamente."""
+    """Contenedor -> publish. IG exige image_url accesible publicamente."""
     ig_id = descubrir_ig_user_id()
     r = requests.post(
         f"{GRAPH}/{ig_id}/media",
@@ -158,13 +156,70 @@ def publicar_instagram(url_imagen):
     return r.json()
 
 
+# --- Chequeo de salud -----------------------------------------------------
+
+def chequeo():
+    """
+    Verifica que el token sirve para las dos redes SIN publicar nada.
+    Usa solo llamadas de lectura. Correr esto despues de rotar el token.
+    """
+    print("=== Chequeo de salud ===")
+    problemas = []
+
+    faltantes = [
+        n for n, v in (("FB_PAGE_ID", PAGE_ID), ("META_ACCESS_TOKEN", TOKEN),
+                       ("RAW_BASE", RAW_BASE)) if not v
+    ]
+    if faltantes:
+        print("FALTAN VARIABLES: " + ", ".join(faltantes))
+        sys.exit(1)
+
+    try:
+        token_de_pagina()
+        print("OK  Facebook: el token canjea por token de pagina.")
+    except Exception as exc:
+        problemas.append(f"FB: {exc}")
+        print(f"FALLA Facebook: {exc}")
+
+    try:
+        ig = descubrir_ig_user_id()
+        print(f"OK  Instagram: cuenta vinculada {ig}")
+    except Exception as exc:
+        problemas.append(f"IG: {exc}")
+        print(f"FALLA Instagram: {exc}")
+
+    try:
+        with open(SCHEDULE, encoding="utf-8") as fh:
+            slots = json.load(fh)["slots"]
+        estado = cargar_estado()
+        ahora = datetime.now(ART)
+        pendientes = [s for s in slots
+                      if s["id"] not in estado["publicados"] and parsear(s) > ahora]
+        print(f"OK  Grilla: {len(slots)} slots, {len(pendientes)} pendientes a futuro.")
+        if pendientes:
+            prox = min(pendientes, key=parsear)
+            print(f"    Proxima: {prox['id']} -> {prox['placa']}")
+    except Exception as exc:
+        problemas.append(f"Grilla: {exc}")
+        print(f"FALLA Grilla: {exc}")
+
+    if problemas:
+        sys.exit("CHEQUEO FALLIDO: " + " | ".join(problemas))
+    print("=== Todo OK. El bot puede publicar. ===")
+
+
 # --- Main -----------------------------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--check", action="store_true")
     ap.add_argument("--slot", help="ID de slot puntual, ej 2026-08-16T11:00")
     args = ap.parse_args()
+
+    if args.check:
+        chequeo()
+        return
 
     with open(SCHEDULE, encoding="utf-8") as fh:
         slots = json.load(fh)["slots"]
@@ -197,9 +252,8 @@ def main():
         return
 
     faltantes = [
-        nombre for nombre, valor in
-        (("FB_PAGE_ID", PAGE_ID), ("META_ACCESS_TOKEN", TOKEN), ("RAW_BASE", RAW_BASE))
-        if not valor
+        n for n, v in (("FB_PAGE_ID", PAGE_ID), ("META_ACCESS_TOKEN", TOKEN),
+                       ("RAW_BASE", RAW_BASE)) if not v
     ]
     if faltantes:
         sys.exit("Faltan variables de entorno: " + ", ".join(faltantes))
@@ -208,13 +262,13 @@ def main():
 
     try:
         print("Facebook:", publicar_facebook(url_imagen))
-    except Exception as exc:                                  # noqa: BLE001
+    except Exception as exc:
         errores.append(f"FB: {exc}")
         print(f"ERROR Facebook: {exc}", file=sys.stderr)
 
     try:
         print("Instagram:", publicar_instagram(url_imagen))
-    except Exception as exc:                                  # noqa: BLE001
+    except Exception as exc:
         errores.append(f"IG: {exc}")
         print(f"ERROR Instagram: {exc}", file=sys.stderr)
 
@@ -227,7 +281,7 @@ def main():
     if errores:
         sys.exit("Fallos: " + " | ".join(errores))
 
-    print("OK — publicada en FB e IG.")
+    print("OK - publicada en FB e IG.")
 
 
 if __name__ == "__main__":

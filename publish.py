@@ -37,6 +37,18 @@ TOKEN = os.environ.get("META_ACCESS_TOKEN", "")
 RAW_BASE = os.environ.get("RAW_BASE", "").rstrip("/")
 
 
+def verificar(r):
+    """
+    raise_for_status() tira el cuerpo de la respuesta, y ahi es donde Meta explica
+    QUE esta mal (code 190 = token invalido/expirado, 100 = parametro incorrecto,
+    102 = sesion caida, 200 = falta permiso). Sin eso hay que adivinar.
+    """
+    if not r.ok:
+        detalle = r.text[:500] if r.text else "(sin cuerpo)"
+        raise RuntimeError(f"HTTP {r.status_code} - {detalle}")
+    return r
+
+
 # --- Estado (evita publicar dos veces si se re-dispara el workflow) --------
 
 def cargar_estado():
@@ -58,7 +70,6 @@ def parsear(slot):
 
 
 def slot_de_ahora(slots, ahora):
-    """Devuelve el slot cuyo horario cae dentro de la ventana de tolerancia."""
     candidatos = [
         (abs((parsear(s) - ahora).total_seconds()), s)
         for s in slots
@@ -74,8 +85,7 @@ def slot_de_ahora(slots, ahora):
 def token_de_pagina():
     """
     CRITICO: el token del usuario del sistema NO sirve para publicar como la pagina.
-    Facebook devuelve 403 Forbidden. Hay que canjearlo por un token de pagina.
-    Instagram si acepta el token del usuario directo.
+    Facebook devuelve 403. Hay que canjearlo por un token de pagina.
     """
     if not hasattr(token_de_pagina, "_cache"):
         r = requests.get(
@@ -83,11 +93,11 @@ def token_de_pagina():
             params={"fields": "access_token", "access_token": TOKEN},
             timeout=30,
         )
-        r.raise_for_status()
+        verificar(r)
         pt = r.json().get("access_token")
         if not pt:
             raise RuntimeError(
-                "No se pudo obtener el token de pagina. Revisa que el usuario del "
+                "La respuesta no trajo access_token. Revisa que el usuario del "
                 "sistema tenga la pagina asignada con la tarea 'Content'."
             )
         token_de_pagina._cache = pt
@@ -96,15 +106,13 @@ def token_de_pagina():
 
 
 def publicar_facebook(url_imagen):
-    """Sube la foto sin publicar, despues la manda a historias."""
     pt = token_de_pagina()
-
     r = requests.post(
         f"{GRAPH}/{PAGE_ID}/photos",
         data={"url": url_imagen, "published": "false", "access_token": pt},
         timeout=60,
     )
-    r.raise_for_status()
+    verificar(r)
     photo_id = r.json()["id"]
 
     r = requests.post(
@@ -112,12 +120,11 @@ def publicar_facebook(url_imagen):
         data={"photo_id": photo_id, "access_token": pt},
         timeout=60,
     )
-    r.raise_for_status()
+    verificar(r)
     return r.json()
 
 
 def descubrir_ig_user_id():
-    """El ID de IG cuelga de la pagina, no hace falta cargarlo como secret."""
     if IG_USER_ID:
         return IG_USER_ID
     r = requests.get(
@@ -125,7 +132,7 @@ def descubrir_ig_user_id():
         params={"fields": "instagram_business_account", "access_token": TOKEN},
         timeout=30,
     )
-    r.raise_for_status()
+    verificar(r)
     cuenta = r.json().get("instagram_business_account")
     if not cuenta:
         raise RuntimeError(
@@ -137,14 +144,13 @@ def descubrir_ig_user_id():
 
 
 def publicar_instagram(url_imagen):
-    """Contenedor -> publish. IG exige image_url accesible publicamente."""
     ig_id = descubrir_ig_user_id()
     r = requests.post(
         f"{GRAPH}/{ig_id}/media",
         data={"image_url": url_imagen, "media_type": "STORIES", "access_token": TOKEN},
         timeout=60,
     )
-    r.raise_for_status()
+    verificar(r)
     creation_id = r.json()["id"]
 
     r = requests.post(
@@ -152,17 +158,14 @@ def publicar_instagram(url_imagen):
         data={"creation_id": creation_id, "access_token": TOKEN},
         timeout=60,
     )
-    r.raise_for_status()
+    verificar(r)
     return r.json()
 
 
 # --- Chequeo de salud -----------------------------------------------------
 
 def chequeo():
-    """
-    Verifica que el token sirve para las dos redes SIN publicar nada.
-    Usa solo llamadas de lectura. Correr esto despues de rotar el token.
-    """
+    """Verifica el token SIN publicar nada. Solo llamadas de lectura."""
     print("=== Chequeo de salud ===")
     problemas = []
 
@@ -173,6 +176,24 @@ def chequeo():
     if faltantes:
         print("FALTAN VARIABLES: " + ", ".join(faltantes))
         sys.exit(1)
+
+    # Pistas sobre la forma del token, sin exponerlo.
+    print(f"Token: {len(TOKEN)} caracteres, empieza con '{TOKEN[:4]}', "
+          f"termina con '{TOKEN[-4:]}'")
+    if TOKEN != TOKEN.strip():
+        print("AVISO: el token tiene espacios o saltos de linea al principio o al final.")
+    if len(TOKEN) < 100:
+        print("AVISO: parece corto. Un token de usuario del sistema suele pasar "
+              "los 180 caracteres. Puede haberse copiado cortado.")
+
+    # /me dice quien es el token, sin depender de la pagina.
+    try:
+        r = requests.get(f"{GRAPH}/me", params={"access_token": TOKEN}, timeout=30)
+        verificar(r)
+        print(f"OK  Identidad del token: {r.json()}")
+    except Exception as exc:
+        problemas.append(f"identidad: {exc}")
+        print(f"FALLA identidad del token: {exc}")
 
     try:
         token_de_pagina()
@@ -204,7 +225,7 @@ def chequeo():
         print(f"FALLA Grilla: {exc}")
 
     if problemas:
-        sys.exit("CHEQUEO FALLIDO: " + " | ".join(problemas))
+        sys.exit("CHEQUEO FALLIDO")
     print("=== Todo OK. El bot puede publicar. ===")
 
 
@@ -272,8 +293,6 @@ def main():
         errores.append(f"IG: {exc}")
         print(f"ERROR Instagram: {exc}", file=sys.stderr)
 
-    # Marcamos como publicado si al menos una red salio, para no repetir la otra
-    # a ciegas en un re-run. Si fallaron las dos, queda pendiente y se reintenta.
     if len(errores) < 2:
         estado["publicados"].append(slot["id"])
         guardar_estado(estado)

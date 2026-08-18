@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -26,6 +27,10 @@ import requests
 GRAPH = "https://graph.facebook.com/v21.0"
 ART = timezone(timedelta(hours=-3))          # Argentina, sin horario de verano
 TOLERANCIA_MIN = 45                          # GH Actions puede atrasarse bajo carga
+
+# Cuanto esperamos a que Instagram procese el contenedor antes de publicarlo.
+IG_INTENTOS = 15
+IG_ESPERA_SEG = 4
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 SCHEDULE = os.path.join(BASE, "schedule.json")
@@ -40,8 +45,8 @@ RAW_BASE = os.environ.get("RAW_BASE", "").rstrip("/")
 def verificar(r):
     """
     raise_for_status() tira el cuerpo de la respuesta, y ahi es donde Meta explica
-    QUE esta mal (code 190 = token invalido/expirado, 100 = parametro incorrecto,
-    102 = sesion caida, 200 = falta permiso). Sin eso hay que adivinar.
+    QUE esta mal (code 190 = token invalido, 200 = acceso bloqueado, 9007 = el
+    contenedor de IG todavia no esta listo). Sin eso hay que adivinar.
     """
     if not r.ok:
         detalle = r.text[:500] if r.text else "(sin cuerpo)"
@@ -49,7 +54,7 @@ def verificar(r):
     return r
 
 
-# --- Estado (evita publicar dos veces si se re-dispara el workflow) --------
+# --- Estado ---------------------------------------------------------------
 
 def cargar_estado():
     if os.path.exists(STATE):
@@ -83,10 +88,7 @@ def slot_de_ahora(slots, ahora):
 # --- Publicacion ----------------------------------------------------------
 
 def token_de_pagina():
-    """
-    CRITICO: el token del usuario del sistema NO sirve para publicar como la pagina.
-    Facebook devuelve 403. Hay que canjearlo por un token de pagina.
-    """
+    """El token del usuario del sistema NO publica como la pagina: hay que canjearlo."""
     if not hasattr(token_de_pagina, "_cache"):
         r = requests.get(
             f"{GRAPH}/{PAGE_ID}",
@@ -143,8 +145,42 @@ def descubrir_ig_user_id():
     return cuenta["id"]
 
 
+def esperar_contenedor(creation_id):
+    """
+    Instagram necesita bajar la imagen y procesarla antes de poder publicarla.
+    Si llamamos a media_publish enseguida devuelve 'Media ID is not available'
+    (code 9007). Hay que consultar status_code hasta que diga FINISHED.
+    """
+    for intento in range(1, IG_INTENTOS + 1):
+        r = requests.get(
+            f"{GRAPH}/{creation_id}",
+            params={"fields": "status_code,status", "access_token": TOKEN},
+            timeout=30,
+        )
+        verificar(r)
+        datos = r.json()
+        estado = datos.get("status_code")
+
+        if estado == "FINISHED":
+            print(f"Contenedor listo tras {intento} consulta(s).")
+            return
+        if estado == "ERROR":
+            raise RuntimeError(f"El contenedor fallo al procesarse: {datos}")
+
+        print(f"Contenedor {estado or 'sin estado'}, esperando... "
+              f"({intento}/{IG_INTENTOS})")
+        time.sleep(IG_ESPERA_SEG)
+
+    raise RuntimeError(
+        f"El contenedor no quedo listo despues de "
+        f"{IG_INTENTOS * IG_ESPERA_SEG} segundos."
+    )
+
+
 def publicar_instagram(url_imagen):
+    """Contenedor -> esperar a que procese -> publish."""
     ig_id = descubrir_ig_user_id()
+
     r = requests.post(
         f"{GRAPH}/{ig_id}/media",
         data={"image_url": url_imagen, "media_type": "STORIES", "access_token": TOKEN},
@@ -152,6 +188,9 @@ def publicar_instagram(url_imagen):
     )
     verificar(r)
     creation_id = r.json()["id"]
+    print(f"Contenedor IG creado: {creation_id}")
+
+    esperar_contenedor(creation_id)
 
     r = requests.post(
         f"{GRAPH}/{ig_id}/media_publish",
@@ -177,16 +216,9 @@ def chequeo():
         print("FALTAN VARIABLES: " + ", ".join(faltantes))
         sys.exit(1)
 
-    # Pistas sobre la forma del token, sin exponerlo.
     print(f"Token: {len(TOKEN)} caracteres, empieza con '{TOKEN[:4]}', "
           f"termina con '{TOKEN[-4:]}'")
-    if TOKEN != TOKEN.strip():
-        print("AVISO: el token tiene espacios o saltos de linea al principio o al final.")
-    if len(TOKEN) < 100:
-        print("AVISO: parece corto. Un token de usuario del sistema suele pasar "
-              "los 180 caracteres. Puede haberse copiado cortado.")
 
-    # /me dice quien es el token, sin depender de la pagina.
     try:
         r = requests.get(f"{GRAPH}/me", params={"access_token": TOKEN}, timeout=30)
         verificar(r)

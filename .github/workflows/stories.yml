@@ -2,8 +2,19 @@ name: Historias Olivia
 
 on:
   schedule:
-    - cron: "0 14 * * *"
-    - cron: "30 22 * * *"
+    # GitHub Actions retrasa los crons compartidos (medido: 2-4 horas los dias malos),
+    # y con un solo disparo por slot la ventana de +/-45 min de publish.py se pierde
+    # entera (paso del 27 al 30/08: corridas "success" sin publicar nada).
+    # Solucion: rafaga de disparos alrededor de cada ventana, en minutos "raros"
+    # (los minutos 0 y 30 son los mas congestionados). publish.py ya se banca esto:
+    # fuera de ventana no hace nada, y state.json evita duplicados.
+    # Slot 11:00 ART = 14:00 UTC (ventana 13:15-14:45 UTC):
+    - cron: "7,22,37,52 13 * * *"
+    - cron: "7,22,37 14 * * *"
+    # Slot 19:30 ART = 22:30 UTC (ventana 21:45-23:15 UTC):
+    - cron: "52 21 * * *"
+    - cron: "7,22,37,52 22 * * *"
+    - cron: "7 23 * * *"
   workflow_dispatch:
     inputs:
       slot:
